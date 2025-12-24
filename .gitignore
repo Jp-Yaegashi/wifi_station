@@ -1,0 +1,27 @@
+# Build and development files
+build/
+.west/
+*.log
+*.tmp
+
+# IDE files
+.vscode/
+*.code-workspace
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# WiFi configuration (contains sensitive data)
+wifi_config.conf
+
+# Backup files
+*~
+*.bak
+*.swp
+*.swo
+
+# Binary files
+*.bin
+*.hex
+*.elf

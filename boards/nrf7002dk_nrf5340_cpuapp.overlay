@@ -1,0 +1,167 @@
+
+
+/ {
+	/* Force UART console for debug output */
+	chosen {
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+		zephyr,uart-mcumgr = &uart0;
+	};
+	
+	/* Trace (TPIU) を止めて TRACEDATA/TRACECLK を解放 */
+
+
+
+	/* nRF70 TX power configuration for WiFi */
+	nrf70_tx_power_ceiling: nrf70_tx_power_ceiling_node {
+		status = "okay";
+		compatible = "nordic,nrf700x-tx-power-ceiling";
+		max-pwr-2g-dsss = <21>;
+		max-pwr-2g-mcs0 = <21>;
+		max-pwr-2g-mcs7 = <21>;
+		max-pwr-5g-low-mcs0 = <21>;
+		max-pwr-5g-low-mcs7 = <21>;
+		max-pwr-5g-mid-mcs0 = <21>;
+		max-pwr-5g-mid-mcs7 = <21>;
+		max-pwr-5g-high-mcs0 = <21>;
+		max-pwr-5g-high-mcs7 = <21>;
+	};
+};
+
+/* 
+
+/ {
+    user_gpio: user-gpio {
+        compatible = "gpio-leds";
+
+        coex_status0: coex_status0 {
+            gpios = <&gpio0 22 GPIO_ACTIVE_HIGH>;
+            label = "BT_COEX_STATUS0";
+        };
+		
+        coex_req: coex_req {
+            gpios = <&gpio0 11 GPIO_ACTIVE_HIGH>;
+            label = "BT_COEX_REQ";
+        };
+
+        coex_grant: coex_grant {
+            gpios = <&gpio0 10 GPIO_ACTIVE_HIGH>;
+            label = "BT_COEX_GRANT";
+        };
+
+        sw_ctrl0: sw_ctrl0 {
+            gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>;
+            label = "SW_CTRL0";
+        };
+
+        sw_ctrl1: sw_ctrl1 {
+            gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;
+            label = "SW_CTRL1";
+        };
+
+		
+		led_a: led_a {
+			gpios = <&gpio0 28 GPIO_ACTIVE_HIGH>;
+			label = "Status LED";
+		};
+
+		led_b: led_b {
+			gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
+			label = "WiFi LED";
+		};
+
+    };
+};
+*/
+
+/* WM02C COEX configuration - Override nRF7002DK default with Mira Station pins */
+/* 
+&nrf_radio_coex {
+    status = "disabled";
+};*/
+
+&pinctrl {
+	/* 自分で使うGPIO用の定義 */
+
+	qspi_default: qspi_default {
+		group1 {
+			psels = <NRF_PSEL(QSPI_SCK, 0, 17)>,
+				<NRF_PSEL(QSPI_IO0, 0, 13)>,
+				<NRF_PSEL(QSPI_IO1, 0, 14)>,
+				<NRF_PSEL(QSPI_IO2, 0, 15)>,
+				<NRF_PSEL(QSPI_IO3, 0, 16)>,
+				<NRF_PSEL(QSPI_CSN, 0, 18)>;
+			nordic,drive-mode = <NRF_DRIVE_H0H1>;
+		};
+	};
+
+	qspi_sleep: qspi_sleep {
+		group1 {
+			psels = <NRF_PSEL(QSPI_SCK, 0, 17)>,
+				<NRF_PSEL(QSPI_IO0, 0, 13)>,
+				<NRF_PSEL(QSPI_IO1, 0, 14)>,
+				<NRF_PSEL(QSPI_IO2, 0, 15)>,
+				<NRF_PSEL(QSPI_IO3, 0, 16)>;
+			low-power-enable;
+		};
+		group2 {
+			psels = <NRF_PSEL(QSPI_CSN, 0, 18)>;
+			low-power-enable;
+			bias-pull-up;
+		};
+	};
+	
+};
+
+&nrf70 {
+    status = "okay";
+    bucken-gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+    iovdd-ctrl-gpios = <&gpio0 20 GPIO_ACTIVE_HIGH>;
+    host-irq-gpios = <&gpio0 19 GPIO_ACTIVE_HIGH>; // まずは元に戻す 
+	qspi-frequency = <16000000>;
+	//tx-power-ceiling = <&nrf70_tx_power_ceiling>;
+	 
+	coexistence: coexistence {
+        status = "disabled"; 
+    };
+};
+
+&qspi {
+	status = "okay";
+	pinctrl-0 = <&qspi_default>;
+	pinctrl-1 = <&qspi_sleep>;
+	pinctrl-names = "default", "sleep";	
+};
+
+/* Mira Station UART0 configuration - Custom pins P0.24/P0.26 */
+&pinctrl {
+	uart0_mira_default: uart0_mira_default {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 24)>,
+				<NRF_PSEL(UART_RX, 0, 26)>;
+		};
+	};
+
+	uart0_mira_sleep: uart0_mira_sleep {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 24)>,
+				<NRF_PSEL(UART_RX, 0, 26)>;
+			low-power-enable;
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+	current-speed = <115200>;
+	/* Use Mira Station specific pinctrl */
+	pinctrl-0 = <&uart0_mira_default>;
+	pinctrl-1 = <&uart0_mira_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+
+
+&gpio0 {
+    status = "okay";
+};

@@ -1,0 +1,37 @@
+{
+  "name": "WiFi Station",
+  "description": "nRF5340 + WM02C WiFi Station Application for Mira Station",
+  "version": "1.0.0",
+  "author": "Mira Project",
+  "license": "Apache-2.0",
+  "keywords": ["nrf5340", "wifi", "wm02c", "nrf7002", "zephyr"],
+  "target": {
+    "board": "mira_station_nrf5340_cpuapp",
+    "soc": "nrf5340"
+  },
+  "features": [
+    "WiFi Station Mode",
+    "UART Shell Interface", 
+    "LED Status Indicators",
+    "BLE Peripheral Service",
+    "Hardware Test Mode"
+  ],
+  "dependencies": {
+    "ncs_version": "v3.1.1",
+    "zephyr_version": "3.6.0"
+  },
+  "build": {
+    "configurations": [
+      {
+        "name": "default",
+        "file": "prj.conf",
+        "description": "Full featured WiFi station with BLE"
+      },
+      {
+        "name": "test",
+        "file": "prj_test.conf", 
+        "description": "Minimal LED test configuration"
+      }
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+# Mira Station nRF5340 CPU Application board configuration
+
+# Copyright (c) 2023 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_MIRA_STATION_NRF5340_CPUAPP
+	bool "Mira Station nRF5340 Application MCU"
+	depends on SOC_NRF5340_CPUAPP_QKAA
+	select HAS_SEGGER_RTT if ZEPHYR_SEGGER_MODULE

@@ -1,0 +1,41 @@
+# Mira Station nRF5340 Application MCU Board Configuration
+# Copyright (c) 2023 Nordic Semiconductor ASA
+# SPDX-License-Identifier: Apache-2.0
+
+CONFIG_SOC_SERIES_NRF53X=y
+CONFIG_SOC_NRF5340_CPUAPP_QKAA=y
+CONFIG_BOARD_MIRA_STATION_NRF5340_CPUAPP=y
+
+# Enable MPU
+CONFIG_ARM_MPU=y
+
+# Enable hardware stack protection
+CONFIG_HW_STACK_PROTECTION=y
+
+# Enable GPIO
+CONFIG_GPIO=y
+
+# Enable UART drivers
+CONFIG_SERIAL=y
+
+# Enable RTT
+CONFIG_USE_SEGGER_RTT=y
+
+# Enable DC/DC converter
+CONFIG_SOC_DCDC_NRF53X_APP=y
+CONFIG_SOC_DCDC_NRF53X_NET=y
+CONFIG_SOC_DCDC_NRF53X_HV=y
+
+# Network core  
+CONFIG_NCS_SAMPLES_DEFAULTS=y
+
+# Enable WiFi support - nRF7002 based on Nordic official
+CONFIG_WIFI=y
+CONFIG_WIFI_NRF70=y
+
+# Enable networking stack
+CONFIG_NETWORKING=y
+
+# Enable flash support for nRF7002
+CONFIG_FLASH=y
+CONFIG_FLASH_PAGE_LAYOUT=y
