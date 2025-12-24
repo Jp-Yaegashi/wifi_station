@@ -42,7 +42,7 @@
         };
     };
 };
-/* 
+
 
 / {
     user_gpio: user-gpio {
@@ -86,7 +86,7 @@
 
     };
 };
-*/
+
 
 /* WM02C COEX configuration - Override nRF7002DK default with Mira Station pins */
 /* 

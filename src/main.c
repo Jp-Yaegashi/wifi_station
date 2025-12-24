@@ -14,7 +14,7 @@
 #include <zephyr/device.h>
 #include <zephyr/net/net_config.h>
 #include <zephyr/drivers/gpio.h>
-/*
+
 static const struct gpio_dt_spec coex_status0 =
     GPIO_DT_SPEC_GET(DT_NODELABEL(coex_status0), gpios);
 
@@ -34,23 +34,18 @@ static const struct gpio_dt_spec led_a =
     GPIO_DT_SPEC_GET(DT_NODELABEL(led_a), gpios);
 static const struct gpio_dt_spec led_b =
     GPIO_DT_SPEC_GET(DT_NODELABEL(led_b), gpios);
-*/
-int main(void)
+
+
+void init_gpio()
 {
-	printk("Boot start\n");
-	/* ① 内部 DC/DC */
-
-
-	printk("Starting %s with CPU frequency: %d MHz\n", CONFIG_BOARD, SystemCoreClock/MHZ(1));
-	/*
-	gpio_pin_configure_dt(&coex_req, GPIO_OUTPUT_INACTIVE);
+	gpio_pin_configure_dt(&coex_req, GPIO_OUTPUT_INACTIVE); //OK
 	gpio_pin_configure_dt(&coex_status0, GPIO_OUTPUT_INACTIVE); //OK
      
-    gpio_pin_configure_dt(&coex_grant, GPIO_OUTPUT_INACTIVE); //OK
+    gpio_pin_configure_dt(&coex_grant, GPIO_INPUT); //OK
 
-    gpio_pin_configure_dt(&sw_ctrl0, GPIO_OUTPUT_INACTIVE);//OK
+    gpio_pin_configure_dt(&sw_ctrl0, GPIO_INPUT);//OK
     
-    gpio_pin_configure_dt(&sw_ctrl1, GPIO_OUTPUT_INACTIVE);//OK
+    gpio_pin_configure_dt(&sw_ctrl1, GPIO_INPUT);//OK
 
 
     gpio_pin_configure_dt(&led_a, GPIO_OUTPUT_INACTIVE);//OK
@@ -58,14 +53,17 @@ int main(void)
 
 	gpio_pin_set_dt(&coex_req, 0);  
 	gpio_pin_set_dt(&coex_status0, 0);  
-	gpio_pin_set_dt(&coex_grant, 0);  
-	gpio_pin_set_dt(&sw_ctrl0, 0);  
-	gpio_pin_set_dt(&sw_ctrl1, 0);  
+	 
+	
 	gpio_pin_set_dt(&led_a, 1);  
 	gpio_pin_set_dt(&led_b, 1);
-
-
-*/
-
+}
+int main(void)
+{
+	printk("Boot start\n");
+	
+	printk("Starting %s with CPU frequency: %d MHz\n", CONFIG_BOARD, SystemCoreClock/MHZ(1));
+	init_gpio();
+	
 	return 0;
 }
