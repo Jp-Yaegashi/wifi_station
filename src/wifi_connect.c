@@ -16,6 +16,26 @@ LOG_MODULE_REGISTER(wifi_connect, LOG_LEVEL_INF);
 
 #define MAX_SSID_LEN 32
 #define STATUS_POLLING_MS 300
+
+
+static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb);
+static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb);
+
+static void net_mgmt_event_handler(struct net_mgmt_event_callback *cb,
+                                   uint64_t mgmt_event, struct net_if *iface);
+
+static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
+                                    uint64_t mgmt_event, struct net_if *iface);
+
+static int wm02c_interface_recovery(struct net_if *iface);
+static int rpu_scan_recovery(struct net_if *iface);
+static int wm02c_power_cycle(void);
+
+
+
+
+
+
 static struct net_mgmt_event_callback wifi_shell_mgmt_cb;
 static struct net_mgmt_event_callback net_shell_mgmt_cb;
 
@@ -25,7 +45,7 @@ static bool wifi_ready_status;
 /* Scan timeout prevention - Dual stage protection */
 static struct k_work_delayable scan_timeout_work;
 static struct k_work_delayable early_warning_work;
-static struct net_if *wifi_iface_cached = NULL;
+
 static bool scan_in_progress = false;
 static struct
 {
@@ -197,8 +217,7 @@ static int cmd_wifi_status(void)
 
     if (status.state >= WIFI_STATE_ASSOCIATED)
     {
-        uint8_t mac_string_buf[sizeof("xx:xx:xx:xx:xx:xx")];
-
+       
         LOG_INF("Interface Mode: %s",
                 wifi_mode_txt(status.iface_mode));
         LOG_INF("Link Mode: %s",
@@ -406,7 +425,7 @@ void start_wifi_thread(void)
     start_app();
 }
 
-int init_wifi()
+int init_wifi(void)
 {
       /* Initialize network management callbacks */
 	LOG_INF("Initializing network management callbacks...");
@@ -490,6 +509,7 @@ int init_wifi()
 	
 	/* Start WiFi application */
 	LOG_INF("Starting WiFi application...");
+    return 0;
 }
 
 /* Static WiFi connection parameters - avoid stack allocation issues */
