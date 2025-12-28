@@ -14,12 +14,11 @@ LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/net_event.h>
 #include <zephyr/drivers/gpio.h>
-
-#ifdef CONFIG_WIFI_READY_LIB
 #include <net/wifi_ready.h>
-#endif /* CONFIG_WIFI_READY_LIB */
-
 #include "wifi_connect.h"
+#include "common.h"
+#include "station_gpio.h"
+#include "station_sdcard.h"
 
 
 /*
@@ -28,52 +27,18 @@ LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
  */
 
 
-static const struct gpio_dt_spec coex_status0 =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(coex_status0), gpios);
 
-static const struct gpio_dt_spec coex_req =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(coex_req), gpios);
 
-static const struct gpio_dt_spec coex_grant =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(coex_grant), gpios);
+sd_data_t sd_data;
 
-static const struct gpio_dt_spec sw_ctrl0 =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(sw_ctrl0), gpios);
-
-static const struct gpio_dt_spec sw_ctrl1 =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(sw_ctrl1), gpios);
-
-static const struct gpio_dt_spec led_a =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(led_a), gpios);
-static const struct gpio_dt_spec led_b =
-    GPIO_DT_SPEC_GET(DT_NODELABEL(led_b), gpios);
-
-void init_gpio()
-{
-    gpio_pin_configure_dt(&coex_req, GPIO_OUTPUT_INACTIVE);     // OK
-    gpio_pin_configure_dt(&coex_status0, GPIO_OUTPUT_INACTIVE); // OK
-
-    gpio_pin_configure_dt(&coex_grant, GPIO_INPUT); // OK
-
-    gpio_pin_configure_dt(&sw_ctrl0, GPIO_INPUT); // OK
-
-    gpio_pin_configure_dt(&sw_ctrl1, GPIO_INPUT); // OK
-
-    gpio_pin_configure_dt(&led_a, GPIO_OUTPUT_INACTIVE); // OK
-    gpio_pin_configure_dt(&led_b, GPIO_OUTPUT_INACTIVE); // OK
-
-    gpio_pin_set_dt(&coex_req, 0);
-    gpio_pin_set_dt(&coex_status0, 0);
-
-    gpio_pin_set_dt(&led_a, 1);
-    gpio_pin_set_dt(&led_b, 1);
-}
 
 int main(void)
 {
     int ret = 0;
 
     init_gpio();
+
+    init_sd_card();
 
     init_wifi();
   

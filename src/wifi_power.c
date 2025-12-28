@@ -34,11 +34,11 @@ static int wifi_power_init(void)
     /* WM02C 推奨電源シーケンス */
     printk("### wifi_buck_en called ###\n");
     gpio_pin_set_dt(&wifi_buck_en, 1); /* BUCK_EN */
-    k_msleep(1000);
+    k_msleep(100);
 
     printk("### wifi_en called ###\n");
     gpio_pin_set_dt(&wifi_en, 1);      /* IOVDD */
-    k_msleep(1000);
+    k_msleep(100);
 
     return 0;
 }

@@ -18,6 +18,9 @@
 
 #define TLS_SEC_TAG		42
 
+
+extern sd_data_t sd_data;
+
 static const char cert[] = {
 	#include "DigiCertGlobalG3.pem.inc"
 
@@ -27,6 +30,13 @@ static const char cert[] = {
 	IF_ENABLED(CONFIG_TLS_CREDENTIALS, (0x00))
 };
 
+#define IOT_LOGIN_ID "huihui"
+#define IOT_LOGIN_PW "61121288b9"
+
+static void get_access_token(){
+	
+
+}
 static void send_post_request(int sock)
 {
     struct http_request req = {0};

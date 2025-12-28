@@ -8,6 +8,8 @@ project(wifi_station)
         src/main.c
         src/wifi_power.c
         src/wifi_connect.c
+        src/station_gpio.c
+        src/station_sdcard.c
         #src/https_api.c        
     )
 set(gen_dir ${CMAKE_CURRENT_BINARY_DIR}/certs)

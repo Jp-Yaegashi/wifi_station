@@ -11,13 +11,10 @@
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/net_event.h>
 #include <zephyr/drivers/gpio.h>
-
-#ifdef CONFIG_WIFI_READY_LIB
 #include <net/wifi_ready.h>
-#endif /* CONFIG_WIFI_READY_LIB */
-
 #include "wifi_connect.h"
-
+#include "common.h"
+#include "station_gpio.h"
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(wifi_connect, LOG_LEVEL_INF);
 
@@ -73,6 +70,8 @@ static struct
         uint8_t all;
     };
 } context;
+
+extern sd_data_t sd_data;
 
 int init_wifi(void)
 {
@@ -139,11 +138,13 @@ static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
     if (status->status)
     {
         LOG_ERR("Connection failed (%d)", status->status);
+        led_a_lights_down();
     }
     else
     {
         LOG_INF("Connected");
         context.connected = true;
+        led_a_lights_up();
     }
 
     context.connect_result = true;
@@ -214,12 +215,9 @@ static void net_mgmt_event_handler(struct net_mgmt_event_callback *cb,
         break;
     }
 }
-#define WIFI_SSID "huihui"
-#define WIFI_PSK "61121288b9"
 
 static struct wifi_connect_req_params wifi_params;
-static const char wifi_ssid[] = WIFI_SSID; /* Use consistent SSID from header */
-static const char wifi_psk[] = WIFI_PSK;   /* Use consistent PSK from header */
+
 static int wifi_connect(void)
 {
     LOG_INF("wifi_connect...................");
@@ -230,10 +228,10 @@ static int wifi_connect(void)
     /* Initialize WiFi connection parameters completely */
     memset(&wifi_params, 0, sizeof(wifi_params));
 
-    wifi_params.ssid = (uint8_t *)wifi_ssid;
-    wifi_params.ssid_length = strlen(wifi_ssid);
-    wifi_params.psk = (uint8_t *)wifi_psk;
-    wifi_params.psk_length = strlen(wifi_psk);
+    wifi_params.ssid = (uint8_t *)sd_data.wifi_ssid;
+    wifi_params.ssid_length = strlen(sd_data.wifi_ssid);
+    wifi_params.psk = (uint8_t *)sd_data.wifi_passwd;
+    wifi_params.psk_length = strlen(sd_data.wifi_passwd);
     wifi_params.security = WIFI_SECURITY_TYPE_PSK; /* WPA2-PSK security */
     wifi_params.sae_password = NULL;
     wifi_params.sae_password_length = 0;
