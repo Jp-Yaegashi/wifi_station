@@ -24,17 +24,17 @@ const struct gpio_dt_spec led_b =
 
 void init_gpio()
 {
-    gpio_pin_configure_dt(&coex_req, GPIO_OUTPUT_INACTIVE);     // OK
-    gpio_pin_configure_dt(&coex_status0, GPIO_OUTPUT_INACTIVE); // OK
+    gpio_pin_configure_dt(&coex_req, GPIO_OUTPUT_INACTIVE);     
+    gpio_pin_configure_dt(&coex_status0, GPIO_OUTPUT_INACTIVE); 
 
-    gpio_pin_configure_dt(&coex_grant, GPIO_INPUT); // OK
+    gpio_pin_configure_dt(&coex_grant, GPIO_INPUT); 
 
-    gpio_pin_configure_dt(&sw_ctrl0, GPIO_INPUT); // OK
+    gpio_pin_configure_dt(&sw_ctrl0, GPIO_INPUT); 
 
-    gpio_pin_configure_dt(&sw_ctrl1, GPIO_INPUT); // OK
+    gpio_pin_configure_dt(&sw_ctrl1, GPIO_INPUT); 
 
-    gpio_pin_configure_dt(&led_a, GPIO_OUTPUT_INACTIVE); // OK
-    gpio_pin_configure_dt(&led_b, GPIO_OUTPUT_INACTIVE); // OK
+    gpio_pin_configure_dt(&led_a, GPIO_OUTPUT_INACTIVE); 
+    gpio_pin_configure_dt(&led_b, GPIO_OUTPUT_INACTIVE); 
 
     gpio_pin_set_dt(&coex_req, 0);
     gpio_pin_set_dt(&coex_status0, 0);

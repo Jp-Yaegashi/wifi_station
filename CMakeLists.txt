@@ -10,7 +10,7 @@ project(wifi_station)
         src/wifi_connect.c
         src/station_gpio.c
         src/station_sdcard.c
-        #src/https_api.c        
+        src/https_api.c        
     )
 set(gen_dir ${CMAKE_CURRENT_BINARY_DIR}/certs)
 zephyr_include_directories(${gen_dir})

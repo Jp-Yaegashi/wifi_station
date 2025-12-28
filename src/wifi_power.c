@@ -27,16 +27,13 @@ static int wifi_power_init(void)
     gpio_pin_set_dt(&wifi_buck_en, 0); /* BUCK_EN */
     k_msleep(100);
 
-    printk("### wifi_en called ###\n");
     gpio_pin_set_dt(&wifi_en, 0);      /* IOVDD */
     k_msleep(100);
 
     /* WM02C 推奨電源シーケンス */
-    printk("### wifi_buck_en called ###\n");
     gpio_pin_set_dt(&wifi_buck_en, 1); /* BUCK_EN */
     k_msleep(100);
 
-    printk("### wifi_en called ###\n");
     gpio_pin_set_dt(&wifi_en, 1);      /* IOVDD */
     k_msleep(100);
 

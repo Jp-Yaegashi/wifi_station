@@ -15,6 +15,7 @@
 #include "wifi_connect.h"
 #include "common.h"
 #include "station_gpio.h"
+#include "https_api.h"
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(wifi_connect, LOG_LEVEL_INF);
 
@@ -145,6 +146,8 @@ static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
         LOG_INF("Connected");
         context.connected = true;
         led_a_lights_up();
+
+        
     }
 
     context.connect_result = true;
@@ -202,6 +205,8 @@ static void print_dhcp_ip(struct net_mgmt_event_callback *cb)
     net_addr_ntop(AF_INET, addr, dhcp_info, sizeof(dhcp_info));
 
     LOG_INF("DHCP IP address: %s", dhcp_info);
+
+    https_post_json();
 }
 static void net_mgmt_event_handler(struct net_mgmt_event_callback *cb,
                                    uint64_t mgmt_event, struct net_if *iface)

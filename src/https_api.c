@@ -14,118 +14,138 @@
 #include <zephyr/posix/unistd.h>
 #include <zephyr/posix/sys/socket.h>
 #endif
+#include "common.h"
 
-
-#define TLS_SEC_TAG		42
-
+#define TLS_SEC_TAG 42
 
 extern sd_data_t sd_data;
 
 static const char cert[] = {
-	#include "DigiCertGlobalG3.pem.inc"
+#include "DigiCertGlobalG3.pem.inc"
 
 	/* Null terminate certificate if running Mbed TLS on the application core.
 	 * Required by TLS credentials API.
 	 */
-	IF_ENABLED(CONFIG_TLS_CREDENTIALS, (0x00))
-};
+	IF_ENABLED(CONFIG_TLS_CREDENTIALS, (0x00))};
 
-#define IOT_LOGIN_ID "huihui"
-#define IOT_LOGIN_PW "61121288b9"
-
-static void get_access_token(){
-	
-
-}
-static void send_post_request(int sock)
+void get_access_token()
 {
-    struct http_request req = {0};
-    // 送信したい JSON データ
-    const char json_payload[] = "{\"key\": \"value\", \"sensor\": 123}";
-    
-    // 1. 基本設定
-    req.method = HTTP_POST;          // POSTメソッドを指定
-    req.url = "/api/endpoint";       // エンドポイント
-    req.host = "example.com";
-    req.protocol = "HTTP/1.1";
+}
+void send_post_request(int sock)
+{
+	/*
+	struct http_request req = {0};
+	// 送信したい JSON データ
+	const char json_payload[] = "{\"key\": \"value\", \"sensor\": 123}";
 
-    // 2. ヘッダーの設定 (重要: JSONであることを伝える)
-    const char *headers[] = {
-        "Content-Type: application/json\r\n",
-        NULL
+	// 1. 基本設定
+	req.method = HTTP_POST;          // POSTメソッドを指定
+	req.url = sd_data.endpoint_url[0];       // エンドポイント
+	req.host = sd_data.mcm_iot_hostname;
+	req.protocol = "HTTP/1.1";
+
+	// 2. ヘッダーの設定 (重要: JSONであることを伝える)
+	const char *headers[] = {
+		"Content-Type: application/json\r\n",
+		NULL
+	};
+	req.header_fields = headers;
+
+	// 3. JSONデータのセット
+	req.payload = json_payload;
+	req.payload_len = strlen(json_payload);
+
+	// 4. 送信実行
+	// http_client_req() を呼び出す (タイムアウト設定など)
+	int err = http_client_req(sock, &req, 5000, NULL);
+	if (err < 0) {
+		printk("Failed to send HTTP POST: %d\n", err);
+	}*/
+}
+
+int https_post_json(void)
+{
+    printk("### http_post_json ###\n");
+
+    int sock = -1;
+    int ret;
+
+    struct addrinfo hints = {
+        .ai_family = AF_INET,
+        .ai_socktype = SOCK_STREAM,
     };
-    req.header_fields = headers;
+    struct addrinfo *res = NULL;
 
-    // 3. JSONデータのセット
-    req.payload = json_payload;
-    req.payload_len = strlen(json_payload);
-
-    // 4. 送信実行
-    // http_client_req() を呼び出す (タイムアウト設定など)
-    int err = http_client_req(sock, &req, 5000, NULL);
-    if (err < 0) {
-        printk("Failed to send HTTP POST: %d\n", err);
+    /* HTTPは80番 */
+    ret = getaddrinfo("postman-echo.com", "80", &hints, &res);
+    if (ret || res == NULL) {
+        printk("getaddrinfo failed: %d\n", ret);
+        return ret ? ret : -EINVAL;
     }
-}
 
-/* Provision certificate to modem */
-int cert_provision(void)
-{
-	int err;
+    /* TCPソケット */
+    sock = socket(res->ai_family, SOCK_STREAM, IPPROTO_TCP);
+    if (sock < 0) {
+        printk("socket failed: %d\n", -errno);
+        freeaddrinfo(res);
+        return -errno;
+    }
 
-	printk("Provisioning certificate\n");
+    /* connect */
+    ret = connect(sock, res->ai_addr, res->ai_addrlen);
+    freeaddrinfo(res);
+    res = NULL;
 
-#if CONFIG_MODEM_KEY_MGMT
-	bool exists;
-	int mismatch;
+    if (ret < 0) {
+        printk("connect failed: %d\n", -errno);
+        close(sock);
+        return -errno;
+    }
 
-	/* It may be sufficient for you application to check whether the correct
-	 * certificate is provisioned with a given tag directly using modem_key_mgmt_cmp().
-	 * Here, for the sake of the completeness, we check that a certificate exists
-	 * before comparing it with what we expect it to be.
-	 */
-	err = modem_key_mgmt_exists(TLS_SEC_TAG, MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN, &exists);
-	if (err) {
-		printk("Failed to check for certificates err %d\n", err);
-		return err;
-	}
+    const char json[] = "{\"device\":\"nrf5340\",\"value\":123}";
 
-	if (exists) {
-		mismatch = modem_key_mgmt_cmp(TLS_SEC_TAG, MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN, cert,
-					      sizeof(cert));
-		if (!mismatch) {
-			printk("Certificate match\n");
-			return 0;
-		}
+    char req[512];
+    int req_len = snprintf(req, sizeof(req),
+        "POST /post HTTP/1.1\r\n"
+        "Host: postman-echo.com\r\n"
+        "User-Agent: zephyr\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: %d\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "%s",
+        (int)strlen(json), json);
 
-		printk("Certificate mismatch\n");
-		err = modem_key_mgmt_delete(TLS_SEC_TAG, MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN);
-		if (err) {
-			printk("Failed to delete existing certificate, err %d\n", err);
-		}
-	}
+    if (req_len <= 0 || req_len >= (int)sizeof(req)) {
+        printk("snprintf overflow\n");
+        close(sock);
+        return -ENOMEM;
+    }
 
-	printk("Provisioning certificate to the modem\n");
+    printk("### send ###\n");
+    ssize_t sent = send(sock, req, req_len, 0);
+    if (sent < 0) {
+        int e = errno;
+        printk("send() failed: %d\n", -e);
+        close(sock);
+        return -e;
+    }
+    printk("sent=%d\n", (int)sent);
 
-	/*  Provision certificate to the modem */
-	err = modem_key_mgmt_write(TLS_SEC_TAG, MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN, cert,
-				   sizeof(cert));
-	if (err) {
-		printk("Failed to provision certificate, err %d\n", err);
-		return err;
-	}
-#else /* CONFIG_MODEM_KEY_MGMT */
-	err = tls_credential_add(TLS_SEC_TAG,
-				 TLS_CREDENTIAL_CA_CERTIFICATE,
-				 cert,
-				 sizeof(cert));
-	if (err == -EEXIST) {
-		printk("CA certificate already exists, sec tag: %d\n", TLS_SEC_TAG);
-	} else if (err < 0) {
-		printk("Failed to register CA certificate: %d\n", err);
-		return err;
-	}
-#endif /* !CONFIG_MODEM_KEY_MGMT */
+    printk("### recv ###\n");
+    char buf[1024];
+    int len;
 
-	return 0;
+    while ((len = recv(sock, buf, sizeof(buf) - 1, 0)) > 0) {
+        buf[len] = '\0';
+        printk("%s", buf);
+    }
+
+    if (len < 0) {
+        printk("recv() failed: %d\n", -errno);
+    }
+
+    close(sock);
+    printk("### done ###\n");
+    return 0;
 }
