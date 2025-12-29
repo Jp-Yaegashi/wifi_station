@@ -19,3 +19,10 @@ west flash --runner nrfjprog
 ```
 eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2FwaS5zdGctbmV3c2VkdGVjaC1pb3Qub25taXJhLmNsb3VkLyIsInN1YiI6ImFjY2VzcyIsImF1ZCI6InN0Zl9VV2Y5OFhFSWd1YVNMOCIsImp0aSI6IjI0NTk2YjRlLWM0ZGUtNGZlZi04NzU0LTE5ODIzYzQ0OGFkNyIsImlhdCI6MTczNDMzNTM5NH0.D22HW9P4Hsvjdy7oMgcxFi3215R89Q4fkVxfJt4ERko
 ```
+
+
+
+### 証明書実施コマンド
+```
+openssl s_client -connect api.stg-newsedtech-iot.onmira.cloud:443 -servername api.stg-newsedtech-iot.onmira.cloud -showcerts </dev/null >> text.txt
+```

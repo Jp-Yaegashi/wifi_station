@@ -1,12 +1,3 @@
-
-
-#include <zephyr/kernel.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <zephyr/shell/shell.h>
-#include <zephyr/sys/printk.h>
-#include <zephyr/init.h>
-
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/net/net_event.h>
@@ -19,19 +10,10 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(wifi_connect, LOG_LEVEL_INF);
 
-#define WIFI_SHELL_MODULE "wifi"
-
 #define WIFI_SHELL_MGMT_EVENTS (NET_EVENT_WIFI_CONNECT_RESULT | \
                                 NET_EVENT_WIFI_DISCONNECT_RESULT)
 
-#define MAX_SSID_LEN 32
 #define STATUS_POLLING_MS 300
-
-/* 1000 msec = 1 sec */
-#define LED_SLEEP_TIME_MS 100
-
-/* The devicetree node identifier for the "led0" alias. */
-#define LED0_NODE DT_ALIAS(led0)
 
 static struct net_mgmt_event_callback wifi_shell_mgmt_cb;
 static struct net_mgmt_event_callback net_shell_mgmt_cb;
@@ -74,6 +56,10 @@ static struct
 
 extern sd_data_t sd_data;
 
+/* Wi-Fi 機能全体の初期化を行う。
+ * ネットワーク管理コールバックを登録し、
+ * Wi-Fi Ready ライブラリ有効時は待機スレッドを起動する。
+ */
 int init_wifi(void)
 {
     int ret = 0;
@@ -89,9 +75,12 @@ int init_wifi(void)
 #else
     start_app();
 #endif /* CONFIG_WIFI_READY_LIB */
-return 0;
+    return 0;
 }
 
+/* 現在の Wi-Fi 接続状態を取得し、
+ * SSID・RSSI・セキュリティ情報などをログ出力する。
+ */
 static int cmd_wifi_status(void)
 {
     struct net_if *iface = net_if_get_default();
@@ -125,7 +114,9 @@ static int cmd_wifi_status(void)
     }
     return 0;
 }
-
+/* Wi-Fi 接続結果イベントを処理する。
+ * 接続成功・失敗を判定し、LED や内部状態を更新する。
+ */
 static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
 {
     const struct wifi_status *status =
@@ -146,13 +137,14 @@ static void handle_wifi_connect_result(struct net_mgmt_event_callback *cb)
         LOG_INF("Connected");
         context.connected = true;
         led_a_lights_up();
-
-        
     }
 
     context.connect_result = true;
 }
 
+/* Wi-Fi 切断イベントを処理する。
+ * 意図的切断か予期しない切断かを判定し、状態を更新する。
+ */
 static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
 {
     const struct wifi_status *status =
@@ -179,6 +171,9 @@ static void handle_wifi_disconnect_result(struct net_mgmt_event_callback *cb)
     cmd_wifi_status();
 }
 
+/* Wi-Fi 関連のネットワーク管理イベントを振り分ける
+ * ディスパッチャ関数。
+ */
 static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
                                     uint64_t mgmt_event, struct net_if *iface)
 {
@@ -195,6 +190,9 @@ static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
     }
 }
 
+/* DHCP により IP アドレスが割り当てられた際の処理。
+ * 割り当てられた IP を表示し、HTTPS 通信を開始する。
+ */
 static void print_dhcp_ip(struct net_mgmt_event_callback *cb)
 {
     /* Get DHCP info from struct net_if_dhcpv4 and print */
@@ -208,6 +206,10 @@ static void print_dhcp_ip(struct net_mgmt_event_callback *cb)
 
     https_post_json();
 }
+
+/* IPv4 DHCP などネットワーク層のイベントを処理する
+ * 管理イベントハンドラ。
+ */
 static void net_mgmt_event_handler(struct net_mgmt_event_callback *cb,
                                    uint64_t mgmt_event, struct net_if *iface)
 {
@@ -223,6 +225,9 @@ static void net_mgmt_event_handler(struct net_mgmt_event_callback *cb,
 
 static struct wifi_connect_req_params wifi_params;
 
+/* 設定された SSID / パスワードを使用して
+ * Wi-Fi アクセスポイントへの接続を要求する。
+ */
 static int wifi_connect(void)
 {
     LOG_INF("wifi_connect...................");
@@ -257,28 +262,10 @@ static int wifi_connect(void)
     return 0;
 }
 
-int bytes_from_str(const char *str, uint8_t *bytes, size_t bytes_len)
-{
-    size_t i;
-    char byte_str[3];
-
-    if (strlen(str) != bytes_len * 2)
-    {
-        LOG_ERR("Invalid string length: %zu (expected: %d)\n",
-                strlen(str), bytes_len * 2);
-        return -EINVAL;
-    }
-
-    for (i = 0; i < bytes_len; i++)
-    {
-        memcpy(byte_str, str + i * 2, 2);
-        byte_str[2] = '\0';
-        bytes[i] = strtol(byte_str, NULL, 16);
-    }
-
-    return 0;
-}
-
+/* Wi-Fi 接続制御のメイン処理。
+ * Wi-Fi Ready 状態を監視しながら AP へ接続し、
+ * 接続完了後は状態監視を継続する。
+ */
 int start_app(void)
 {
 
@@ -333,12 +320,17 @@ int start_app(void)
     return 0;
 }
 
-
+/* Wi-Fi 制御用スレッドのエントリポイント。
+ * start_app() をスレッドコンテキストで実行する。
+ */
 void start_wifi_thread(void)
 {
     start_app();
 }
 
+/* Wi-Fi Ready 状態変更時に呼ばれるコールバック。
+ * Ready / Not Ready を記録し、待機中の処理を解除する。
+ */
 void wifi_ready_cb(bool wifi_ready)
 {
     LOG_DBG("Is Wi-Fi ready?: %s", wifi_ready ? "yes" : "no");
@@ -347,6 +339,9 @@ void wifi_ready_cb(bool wifi_ready)
 }
 #endif /* CONFIG_WIFI_READY_LIB */
 
+/* ネットワーク管理イベント（Wi-Fi / DHCP）の
+ * コールバック初期化および登録を行う。
+ */
 void net_mgmt_callback_init(void)
 {
     memset(&context, 0, sizeof(context));
@@ -368,6 +363,10 @@ void net_mgmt_callback_init(void)
 }
 
 #ifdef CONFIG_WIFI_READY_LIB
+
+/* Wi-Fi Ready ライブラリへコールバックを登録する。
+ * Wi-Fi デバイスの利用可能状態変化を検知するために使用。
+ */
 static int register_wifi_ready(void)
 {
     int ret = 0;

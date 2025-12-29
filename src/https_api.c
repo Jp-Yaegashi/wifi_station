@@ -1,12 +1,7 @@
 #include <zephyr/sys/printk.h>
 #include <string.h>
-#include <zephyr/kernel.h>
-#include <stdlib.h>
 #include <zephyr/net/socket.h>
-#include <zephyr/net/conn_mgr_monitor.h>
-#include <zephyr/net/conn_mgr_connectivity.h>
 #include <zephyr/net/tls_credentials.h>
-#include <zephyr/net/http/client.h>
 
 #if defined(CONFIG_POSIX_API)
 #include <zephyr/posix/arpa/inet.h>
@@ -15,9 +10,6 @@
 #include <zephyr/posix/sys/socket.h>
 #endif
 #include "common.h"
-#include "ca_cert.h"
-
-#define TLS_SEC_TAG 42
 
 extern sd_data_t sd_data;
 #define CA_CERT_TAG 1
@@ -29,19 +21,54 @@ static const char cert[] = {
 	 */
 	IF_ENABLED(CONFIG_TLS_CREDENTIALS, (0x00))};
 
+/**
+ * @brief アクセストークンを取得するための関数（未実装）
+ *
+ * IoT サーバやクラウド API へアクセスするための
+ * アクセストークン（OAuth 等）を取得する処理を想定。
+ *
+ * 現在は未実装で、将来的に HTTPS 経由で
+ * トークン取得 API を呼び出す想定。
+ */
 void get_access_token()
 {
 }
-
+/**
+ * @brief CA 証明書を Zephyr TLS Credential ストアへ登録する
+ *
+ * DigiCertGlobalG3.pem.inc から取り込んだ CA 証明書を
+ * tls_credential_add() を使って TLS スタックへ登録する。
+ *
+ * HTTPS 通信を行う前に必ず一度は呼び出す必要がある。
+ *
+ * @return 0       成功
+ * @return <0      エラー（TLS Credential 登録失敗）
+ */
 int cert_provision(void)
 {
+	printk("###sizeof(cert) = %d\n", sizeof(cert));
 	return tls_credential_add(
 		CA_CERT_TAG,
 		TLS_CREDENTIAL_CA_CERTIFICATE,
-		ca_cert_isrg_root_x1,
-		sizeof(ca_cert_isrg_root_x1));
+		cert,
+		sizeof(cert));
 }
-
+/**
+ * @brief HTTPS (TLS) 経由で JSON データを POST 送信する
+ *
+ * - CA 証明書を登録
+ * - DNS 名前解決
+ * - TLS ソケット作成（TLS1.2）
+ * - SNI / CA 証明書を設定
+ * - HTTPS サーバへ接続
+ * - JSON データを HTTP POST で送信
+ * - レスポンスを受信してログ出力
+ *
+ * sd_data に設定されたホスト名・エンドポイントを使用する。
+ *
+ * @return 0       成功
+ * @return <0      エラー
+ */
 int https_post_json(void)
 {
 	printk("### https_post_json ###\n");
@@ -57,7 +84,7 @@ int https_post_json(void)
 	struct addrinfo *res = NULL;
 
 	/* HTTPSは443番 */
-	ret = getaddrinfo("postman-echo.com", "443", &hints, &res);
+	ret = getaddrinfo(sd_data.mcm_iot_hostname, "443", &hints, &res);
 	if (ret || res == NULL)
 	{
 		printk("getaddrinfo failed: %d\n", ret);
@@ -87,7 +114,7 @@ int https_post_json(void)
 		return ret;
 	}
 	/* ★SNI/証明書検証用 hostname（必須級） */
-	ret = setsockopt(sock, SOL_TLS, TLS_HOSTNAME, sd_data.mcm_iot_hostname, strlen(sd_data.mcm_iot_hostname) + 1);
+	ret = setsockopt(sock, SOL_TLS, TLS_HOSTNAME, sd_data.mcm_iot_hostname, sizeof(sd_data.mcm_iot_hostname) - 1);
 	if (ret < 0)
 	{
 		printk("TLS_HOSTNAME failed: %d\n", -errno);
@@ -164,7 +191,18 @@ int https_post_json(void)
 	printk("### done ###\n");
 	return 0;
 }
-
+/**
+ * @brief HTTP（非TLS）で JSON データを POST 送信する
+ *
+ * TLS を使用しない平文 HTTP 通信のサンプル。
+ * postman-echo.com に対して JSON を POST し、
+ * レスポンスをログへ表示する。
+ *
+ * 動作確認やデバッグ用途向け。
+ *
+ * @return 0       成功
+ * @return <0      エラー
+ */
 int http_post_json(void)
 {
 	printk("### http_post_json ###\n");
