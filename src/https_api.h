@@ -9,4 +9,5 @@
 void send_post_request(int sock);
 int https_post_json(void);
 int http_post_json(void);
+void get_access_token(void);
 #endif

@@ -190,6 +190,14 @@ static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
     }
 }
 
+static struct k_work https_work;
+
+static void https_work_handler(struct k_work *work)
+{
+    get_access_token();//トークン取得
+    https_post_json();
+}
+
 /* DHCP により IP アドレスが割り当てられた際の処理。
  * 割り当てられた IP を表示し、HTTPS 通信を開始する。
  */
@@ -204,7 +212,10 @@ static void print_dhcp_ip(struct net_mgmt_event_callback *cb)
 
     LOG_INF("DHCP IP address: %s", dhcp_info);
 
-    https_post_json();
+    /* ★ ここでは直接呼ばず、workに投げる */
+    k_work_submit(&https_work);
+
+    
 }
 
 /* IPv4 DHCP などネットワーク層のイベントを処理する
@@ -357,6 +368,8 @@ void net_mgmt_callback_init(void)
                                  NET_EVENT_IPV4_DHCP_BOUND);
 
     net_mgmt_add_event_callback(&net_shell_mgmt_cb);
+
+    k_work_init(&https_work, https_work_handler);
 
     LOG_INF("Starting %s with CPU frequency: %d MHz", CONFIG_BOARD, SystemCoreClock / MHZ(1));
     k_sleep(K_SECONDS(1));

@@ -10,6 +10,7 @@ LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
 
 
 sd_data_t sd_data;
+sys_data_t sys_data;
 
 /**
  * @brief アプリケーションのエントリーポイント

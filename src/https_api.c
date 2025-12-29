@@ -12,6 +12,8 @@
 #include "common.h"
 
 extern sd_data_t sd_data;
+extern sys_data_t sys_data;
+
 #define CA_CERT_TAG 1
 static const char cert[] = {
 #include "DigiCertGlobalG3.pem.inc"
@@ -30,9 +32,11 @@ static const char cert[] = {
  * 現在は未実装で、将来的に HTTPS 経由で
  * トークン取得 API を呼び出す想定。
  */
-void get_access_token()
+void get_access_token(void)
 {
+	strcpy(sys_data.token, "eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2FwaS5zdGctbmV3c2VkdGVjaC1pb3Qub25taXJhLmNsb3VkLyIsInN1YiI6ImFjY2VzcyIsImF1ZCI6InN0Zl9VV2Y5OFhFSWd1YVNMOCIsImp0aSI6IjI0NTk2YjRlLWM0ZGUtNGZlZi04NzU0LTE5ODIzYzQ0OGFkNyIsImlhdCI6MTczNDMzNTM5NH0.D22HW9P4Hsvjdy7oMgcxFi3215R89Q4fkVxfJt4ERko");
 }
+
 /**
  * @brief CA 証明書を Zephyr TLS Credential ストアへ登録する
  *
@@ -46,7 +50,6 @@ void get_access_token()
  */
 int cert_provision(void)
 {
-	printk("###sizeof(cert) = %d\n", sizeof(cert));
 	return tls_credential_add(
 		CA_CERT_TAG,
 		TLS_CREDENTIAL_CA_CERTIFICATE,
@@ -71,7 +74,7 @@ int cert_provision(void)
  */
 int https_post_json(void)
 {
-	printk("### https_post_json ###\n");
+	
 	cert_provision();
 
 	int sock = -1;
@@ -138,13 +141,33 @@ int https_post_json(void)
 		return -errno;
 	}
 
-	const char json[] = "{\"device\":\"nrf5340\",\"value\":123}";
+	/*
+	curl https://api.stg-newsedtech-iot.onmira.cloud/temperatures/ \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2FwaS5zdGctbmV3c2VkdGVjaC1pb3Qub25taXJhLmNsb3VkLyIsInN1YiI6ImFjY2VzcyIsImF1ZCI6InN0Zl9VV2Y5OFhFSWd1YVNMOCIsImp0aSI6IjI0NTk2YjRlLWM0ZGUtNGZlZi04NzU0LTE5ODIzYzQ0OGFkNyIsImlhdCI6MTczNDMzNTM5NH0.D22HW9P4Hsvjdy7oMgcxFi3215R89Q4fkVxfJt4ERko' \
+  --data '{
+  "sensor_id": "ssr_V6lVcrtQQnXE2P",
+  "event": "high",
+  "time": 1767007422,
+  "temperature": 60.5,
+  "threshold": 60.3
+}'
 
-	char req[512];
+
+	*/
+
+	const char json[] = "{\"sensor_id\":\"ssr_V6lVcrtQQnXE2P\",\"event\":\"high\",\"time\":1767007422,\"temperature\":60.5,\"threshold\":60.3}";
+
+	//const char json[] = "{\"sensor_id\":\"ssr_V6lVcrtQQnXE2P\",\"event\":\"high\"}";
+
+	char req[1024];
+
 	int req_len = snprintf(req, sizeof(req),
 						   "POST %s HTTP/1.1\r\n"
 						   "Host: %s\r\n"
 						   "User-Agent: zephyr\r\n"
+						   "Authorization: Bearer %s\r\n"
 						   "Content-Type: application/json\r\n"
 						   "Content-Length: %d\r\n"
 						   "Connection: close\r\n"
@@ -152,7 +175,9 @@ int https_post_json(void)
 						   "%s",
 						   sd_data.endpoint_url[0],
 						   sd_data.mcm_iot_hostname,
+						   sys_data.token,
 						   (int)strlen(json), json);
+			
 
 	if (req_len <= 0 || req_len >= (int)sizeof(req))
 	{
@@ -161,7 +186,7 @@ int https_post_json(void)
 		return -ENOMEM;
 	}
 
-	printk("### send ###\n");
+	
 	ssize_t sent = send(sock, req, req_len, 0);
 	if (sent < 0)
 	{
@@ -170,9 +195,6 @@ int https_post_json(void)
 		close(sock);
 		return -e;
 	}
-	printk("sent=%d\n", (int)sent);
-
-	printk("### recv ###\n");
 	char buf[1024];
 	int len;
 
