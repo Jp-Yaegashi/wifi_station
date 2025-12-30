@@ -16,7 +16,7 @@ extern sys_data_t sys_data;
 
 #define CA_CERT_TAG 1
 static const char cert[] = {
-#include "DigiCertGlobalG3.pem.inc"
+#include "StgNewsedTechiot.pem.inc"
 
 	/* Null terminate certificate if running Mbed TLS on the application core.
 	 * Required by TLS credentials API.

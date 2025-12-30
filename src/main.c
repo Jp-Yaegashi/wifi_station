@@ -45,7 +45,7 @@ int main(void)
 
     init_sd_card();
 
-    //init_wifi();
+    init_wifi();
   
     return ret;
 }
