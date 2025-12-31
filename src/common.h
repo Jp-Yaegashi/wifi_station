@@ -14,3 +14,10 @@ typedef struct {
     char token[512]; //トークン   
 } sys_data_t;
 
+#define     HIGT            1
+#define     LOW             0
+#define     MCP23S08_GP0    0
+#define     MCP23S08_GP1    1
+#define     MCP23S08_GP2    2
+#define     HTTPS_PORT      "443"
+#define     CA_CERT_TAG     1

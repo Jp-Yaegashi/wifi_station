@@ -97,7 +97,8 @@
 		};
 
 		slot_detect: slot_detect {
-			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>; // Mira StationではLOWアクティブ
+			// gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
 			label = "SLOT DETECT";
 		};
 
@@ -197,6 +198,9 @@
         gpio-controller;
         #gpio-cells = <2>;
         ngpios = <16>;
+        
+        /* 割り込みピン設定 */
+        int-gpios = <&gpio1 10 GPIO_ACTIVE_LOW>;
     };
 
     /* MCP23S08 : 8bit GPIO */

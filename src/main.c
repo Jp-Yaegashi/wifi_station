@@ -1,12 +1,11 @@
-
-
-#include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
-
 #include "wifi_connect.h"
 #include "common.h"
 #include "station_gpio.h"
 #include "station_sdcard.h"
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
+
+
 
 
 sd_data_t sd_data;

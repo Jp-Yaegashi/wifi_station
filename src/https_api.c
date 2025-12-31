@@ -2,19 +2,14 @@
 #include <string.h>
 #include <zephyr/net/socket.h>
 #include <zephyr/net/tls_credentials.h>
-
-#if defined(CONFIG_POSIX_API)
-#include <zephyr/posix/arpa/inet.h>
-#include <zephyr/posix/netdb.h>
-#include <zephyr/posix/unistd.h>
-#include <zephyr/posix/sys/socket.h>
-#endif
 #include "common.h"
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(https_api, LOG_LEVEL_INF);
 
 extern sd_data_t sd_data;
 extern sys_data_t sys_data;
 
-#define CA_CERT_TAG 1
+
 static const char cert[] = {
 #include "StgNewsedTechiot.pem.inc"
 
@@ -87,7 +82,7 @@ int https_post_json(void)
 	struct addrinfo *res = NULL;
 
 	/* HTTPSは443番 */
-	ret = getaddrinfo(sd_data.mcm_iot_hostname, "443", &hints, &res);
+	ret = getaddrinfo(sd_data.mcm_iot_hostname, HTTPS_PORT, &hints, &res);
 	if (ret || res == NULL)
 	{
 		printk("getaddrinfo failed: %d\n", ret);
