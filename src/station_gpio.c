@@ -49,40 +49,63 @@ static struct gpio_callback mcp_cb;
 /* 割り込み処理用のワーク（チャタリング対策で遅延実行） */
 static struct k_work_delayable gpio_isr_work;
 
+uint8_t slot_state = 0;
+
+void print_u8_bin(uint8_t v);
+
+void print_u8_bin(uint8_t v)
+{
+    printk("\n*** print_u8_bin ***\n");
+    for (int i = 7; i >= 0; i--)
+    {
+        printk("%d", (v >> i) & 1);
+    }
+    printk("\n");
+}
+
 /**
  * @brief 割り込みハンドラから呼ばれるワーク関数
- * 
+ *
  * 割り込みコンテキスト外でGPIOを読み取る
  */
 static void gpio_isr_work_handler(struct k_work *work)
 {
     printk("\n*** GPIO interrupt work handler ***\n");
-    
+
     for (int in_pin = 0; in_pin < 8; in_pin++)
     {
         int v = gpio_pin_get(mcp17, in_pin); /* GPA0..7 */
+
         if (v < 0)
         {
             printk("mcp17 read error pin%d: %d\n", in_pin, v);
             continue;
         }
-        if (v == 0)
+        if (v == LOW)
         {
             printk("Insert the card into slot %d\n", in_pin);
-            gpio_pin_set(mcp17, in_pin + 8, 1); // 電源ON
+            gpio_pin_set(mcp17, in_pin + 8, HIGT); // カード充電電源ON
+            set_enable_slot_uart(in_pin);
+            slot_state |= (1U << in_pin);
         }
         else
         {
             printk("No card in slot %d\n", in_pin);
-            gpio_pin_set(mcp17, in_pin + 8, 0); // 電源OFF
+            gpio_pin_set(mcp17, in_pin + 8, LOW); // カード充電電源OFF
+            slot_state &= ~(1U << in_pin);        // 0にする
         }
     }
-    
+
     /* 処理完了後、MCP23S17の全ピン割り込みを再有効化 */
     for (int pin = 0; pin < 8; pin++)
     {
         gpio_pin_interrupt_configure(mcp17, pin, GPIO_INT_EDGE_BOTH);
     }
+    if(slot_state==0x00){ //どのスロットにもカード刺してない場合、通信無効設定
+        set_enable_slot_uart(0xff);
+    }
+    print_u8_bin(slot_state);
+
     printk("Interrupts re-enabled\n");
 }
 
@@ -164,7 +187,7 @@ void init_gpio()
 
     gpio_pin_set_dt(&exp_spi_reset, HIGT);  // uart 通信有効
     gpio_pin_set_dt(&unit_spi_reset, HIGT); // slot SPI通信有効
-    k_msleep(1);                         // MCP23S08T通信有効後、待ち時間必須
+    k_msleep(1);                            // MCP23S08T通信有効後、待ち時間必須
 
     // MCP23S08T初期化(出力設定)
     gpio_pin_configure(mcp08, MCP23S08_GP0, GPIO_OUTPUT);
@@ -173,13 +196,14 @@ void init_gpio()
 
     // MCP23S17T初期化
     // スロット挿入検出(入力設定)
-    
+
     printk("Configuring MCP23S17 pins and interrupts...\n");
     for (int pin = 0; pin < 8; pin++)
     {
         gpio_pin_configure(mcp17, pin, GPIO_INPUT | GPIO_PULL_UP);
         ret = gpio_pin_interrupt_configure(mcp17, pin, GPIO_INT_EDGE_BOTH);
-        if (ret != 0) {
+        if (ret != 0)
+        {
             printk("Failed to configure interrupt for pin %d: %d\n", pin, ret);
         }
     }
@@ -187,22 +211,16 @@ void init_gpio()
     /* MCP23S17のピンに直接コールバック登録（全ピン0-7） */
     gpio_init_callback(&mcp_cb, mcp23s17_isr, 0xFF); /* 下位8ビット全て */
     ret = gpio_add_callback(mcp17, &mcp_cb);
-    if (ret != 0) {
+    if (ret != 0)
+    {
         printk("Failed to add callback: %d\n", ret);
         return;
     }
 
     printk("MCP23S17 interrupt initialized on device %p\n", mcp17);
-    
+
     // 初期状態確認
     printk("=== MCP23S17 GPA0-7 Initial Status ===\n");
-    for (int pin = 0; pin < 8; pin++)
-    {
-        int val = gpio_pin_get(mcp17, pin);
-        printk("GPA%d: %d\n", pin, val);
-    }
-
-   
 
     // 電源制御(出力設定)
     /* GPB0..7 を出力に（電源制御など） */
@@ -212,31 +230,69 @@ void init_gpio()
         gpio_pin_set(mcp17, pin, LOW); // 全て電源出力OFF設定
     }
 
+    for (int pin = 0; pin < 8; pin++)
+    {
+        int val = gpio_pin_get(mcp17, pin);
+        printk("GPA%d: %d\n", pin, val);
+        if (val == LOW)
+        {
+            slot_state |= (1U << pin);
+            gpio_pin_set(mcp17, pin + 8, HIGT); // UART電源設定 ON
+        }
+        else
+        {
+            slot_state &= ~(1U << pin);        // 0にする
+            gpio_pin_set(mcp17, pin + 8, LOW); // UART電源設定 OFF
+        }
+       
+    }
+
+    if (slot_state & SLOT_IN_0)
+    {
+        set_enable_slot_uart(0);
+    }
+    else if (slot_state & SLOT_IN_1)
+    {
+        set_enable_slot_uart(1);
+    }
+    else if (slot_state & SLOT_IN_2)
+    {
+        set_enable_slot_uart(2);
+    }
+    else if (slot_state & SLOT_IN_3)
+    {
+        set_enable_slot_uart(3);
+    }
+    else if (slot_state & SLOT_IN_4)
+    {
+        set_enable_slot_uart(4);
+    }
+    else if (slot_state & SLOT_IN_5)
+    {
+        set_enable_slot_uart(5);
+    }
+    else if (slot_state & SLOT_IN_6)
+    {
+        set_enable_slot_uart(6);
+    }
+    else if (slot_state & SLOT_IN_7)
+    {
+        set_enable_slot_uart(7);
+    }else{ //どのスロットにもカード刺してない場合、通信無効設定
+        set_enable_slot_uart(0xff);
+    }
+
+    print_u8_bin(slot_state);
+
     gpio_pin_set_dt(&coex_req, LOW);
     gpio_pin_set_dt(&coex_status0, LOW);
 
     gpio_pin_set_dt(&led_a, LOW);
     gpio_pin_set_dt(&led_b, LOW);
 
-    // テスト　設定start
-    gpio_pin_set(mcp08, MCP23S08_GP0, LOW); // SEL0
-    gpio_pin_set(mcp08, MCP23S08_GP1, HIGT); // SEL1
-    gpio_pin_set(mcp08, MCP23S08_GP2, LOW); // SEL2
-
-    gpio_pin_set(mcp17, 8, HIGT);
-    gpio_pin_set(mcp17, 9, HIGT);
-    gpio_pin_set(mcp17, 10, HIGT);
-    gpio_pin_set(mcp17, 11, HIGT);
-    gpio_pin_set(mcp17, 12, HIGT);
-    gpio_pin_set(mcp17, 13, HIGT);
-    gpio_pin_set(mcp17, 14, HIGT);
-    gpio_pin_set(mcp17, 15, HIGT);
-    // テスト　設定 end
-
+  
     // 割り込み処理用ワークの初期化（遅延実行可能）
     k_work_init_delayable(&gpio_isr_work, gpio_isr_work_handler);
-
-    
 }
 /**
  * @brief Status LED(A) を点灯する
@@ -291,64 +347,65 @@ void led_b_lights_down(void)
  */
 void set_enable_slot_uart(uint8_t slot)
 {
+    printk("set_enable_slot_uart: slot = %d\n", slot);
     if (slot == 0)
     {
         gpio_pin_set_dt(&slot_uart_enable, LOW); // UART通信有効
-        gpio_pin_set(mcp08, MCP23S08_GP0, LOW);             // SEL0
-        gpio_pin_set(mcp08, MCP23S08_GP1, LOW);             // SEL1
-        gpio_pin_set(mcp08, MCP23S08_GP2, LOW);             // SEL2
+        gpio_pin_set(mcp08, MCP23S08_GP0, LOW);  // SEL0
+        gpio_pin_set(mcp08, MCP23S08_GP1, LOW);  // SEL1
+        gpio_pin_set(mcp08, MCP23S08_GP2, LOW);  // SEL2
     }
     else if (slot == 1)
     {
         gpio_pin_set_dt(&slot_uart_enable, LOW); // UART通信有効
-        gpio_pin_set(mcp08, MCP23S08_GP0, HIGT);             // SEL0
-        gpio_pin_set(mcp08, MCP23S08_GP1, LOW);             // SEL1
-        gpio_pin_set(mcp08, MCP23S08_GP2, LOW);             // SEL2
+        gpio_pin_set(mcp08, MCP23S08_GP0, HIGT); // SEL0
+        gpio_pin_set(mcp08, MCP23S08_GP1, LOW);  // SEL1
+        gpio_pin_set(mcp08, MCP23S08_GP2, LOW);  // SEL2
     }
     else if (slot == 2)
     {
         gpio_pin_set_dt(&slot_uart_enable, LOW); // UART通信有効
-        gpio_pin_set(mcp08, MCP23S08_GP0, LOW);             // SEL0
-        gpio_pin_set(mcp08, MCP23S08_GP1, HIGT);             // SEL1
-        gpio_pin_set(mcp08, MCP23S08_GP2, LOW);             // SEL2
+        gpio_pin_set(mcp08, MCP23S08_GP0, LOW);  // SEL0
+        gpio_pin_set(mcp08, MCP23S08_GP1, HIGT); // SEL1
+        gpio_pin_set(mcp08, MCP23S08_GP2, LOW);  // SEL2
     }
     else if (slot == 3)
     {
         gpio_pin_set_dt(&slot_uart_enable, LOW); // UART通信有効
-        gpio_pin_set(mcp08, MCP23S08_GP0, HIGT);             // SEL0
-        gpio_pin_set(mcp08, MCP23S08_GP1, HIGT);             // SEL1
-        gpio_pin_set(mcp08, MCP23S08_GP2, LOW);             // SEL2
+        gpio_pin_set(mcp08, MCP23S08_GP0, HIGT); // SEL0
+        gpio_pin_set(mcp08, MCP23S08_GP1, HIGT); // SEL1
+        gpio_pin_set(mcp08, MCP23S08_GP2, LOW);  // SEL2
     }
     else if (slot == 4)
     {
         gpio_pin_set_dt(&slot_uart_enable, LOW); // UART通信有効
-        gpio_pin_set(mcp08, MCP23S08_GP0, LOW);             // SEL0
-        gpio_pin_set(mcp08, MCP23S08_GP1, LOW);             // SEL1
-        gpio_pin_set(mcp08, MCP23S08_GP2, HIGT);             // SEL2
+        gpio_pin_set(mcp08, MCP23S08_GP0, LOW);  // SEL0
+        gpio_pin_set(mcp08, MCP23S08_GP1, LOW);  // SEL1
+        gpio_pin_set(mcp08, MCP23S08_GP2, HIGT); // SEL2
     }
     else if (slot == 5)
     {
         gpio_pin_set_dt(&slot_uart_enable, LOW); // UART通信有効
-        gpio_pin_set(mcp08, MCP23S08_GP0, HIGT);             // SEL0
-        gpio_pin_set(mcp08, MCP23S08_GP1, LOW);             // SEL1
-        gpio_pin_set(mcp08, MCP23S08_GP2, HIGT);             // SEL2
+        gpio_pin_set(mcp08, MCP23S08_GP0, HIGT); // SEL0
+        gpio_pin_set(mcp08, MCP23S08_GP1, LOW);  // SEL1
+        gpio_pin_set(mcp08, MCP23S08_GP2, HIGT); // SEL2
     }
     else if (slot == 6)
     {
         gpio_pin_set_dt(&slot_uart_enable, LOW); // UART通信有効
-        gpio_pin_set(mcp08, MCP23S08_GP0, LOW);             // SEL0
-        gpio_pin_set(mcp08, MCP23S08_GP1, HIGT);             // SEL1
-        gpio_pin_set(mcp08, MCP23S08_GP2, HIGT);             // SEL2
+        gpio_pin_set(mcp08, MCP23S08_GP0, LOW);  // SEL0
+        gpio_pin_set(mcp08, MCP23S08_GP1, HIGT); // SEL1
+        gpio_pin_set(mcp08, MCP23S08_GP2, HIGT); // SEL2
     }
     else if (slot == 7)
     {
         gpio_pin_set_dt(&slot_uart_enable, LOW); // UART通信有効
-        gpio_pin_set(mcp08, MCP23S08_GP0, HIGT);             // SEL0
-        gpio_pin_set(mcp08, MCP23S08_GP1, HIGT);             // SEL1
-        gpio_pin_set(mcp08, MCP23S08_GP2, HIGT);             // SEL2
+        gpio_pin_set(mcp08, MCP23S08_GP0, HIGT); // SEL0
+        gpio_pin_set(mcp08, MCP23S08_GP1, HIGT); // SEL1
+        gpio_pin_set(mcp08, MCP23S08_GP2, HIGT); // SEL2
     }
     else if (slot == 0xff)
-    {                                          // 全て無効
+    {                                             // 全て無効
         gpio_pin_set_dt(&slot_uart_enable, HIGT); // UART通信無効
     }
 }

@@ -23,19 +23,16 @@ static int wifi_power_init(void)
 
     gpio_pin_configure_dt(&wifi_buck_en, GPIO_OUTPUT_INACTIVE);
     gpio_pin_configure_dt(&wifi_en, GPIO_OUTPUT_INACTIVE);
-	k_msleep(60);
     gpio_pin_set_dt(&wifi_buck_en, 0); /* BUCK_EN */
-    k_msleep(100);
-
     gpio_pin_set_dt(&wifi_en, 0);      /* IOVDD */
-    k_msleep(100);
+    k_msleep(10);
 
     /* WM02C 推奨電源シーケンス */
     gpio_pin_set_dt(&wifi_buck_en, 1); /* BUCK_EN */
-    k_msleep(100);
+    k_msleep(10);
 
     gpio_pin_set_dt(&wifi_en, 1);      /* IOVDD */
-    k_msleep(100);
+    k_msleep(10);
 
     return 0;
 }

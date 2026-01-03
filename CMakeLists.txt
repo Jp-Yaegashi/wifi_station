@@ -11,6 +11,7 @@ project(wifi_station)
         src/station_gpio.c
         src/station_sdcard.c
         src/https_api.c        
+        src/slot_uart.c
     )
 set(gen_dir ${CMAKE_CURRENT_BINARY_DIR}/certs)
 zephyr_include_directories(${gen_dir})

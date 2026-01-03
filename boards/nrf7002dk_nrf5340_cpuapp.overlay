@@ -217,16 +217,6 @@
     };
 };
 
-/ {
-    mcp_pins: mcp_pins {
-        compatible = "gpio-leds";
-
-        gp0: gp0 { gpios = <&mcp23s08 0 GPIO_ACTIVE_HIGH>; label = "MCP_GP0"; };
-        gp1: gp1 { gpios = <&mcp23s08 1 GPIO_ACTIVE_HIGH>; label = "MCP_GP1"; };
-        gp2: gp2 { gpios = <&mcp23s08 2 GPIO_ACTIVE_HIGH>; label = "MCP_GP2"; };       
-    };
-};
-
 
 /* Mira Station UART0 configuration - Custom pins P0.24/P0.26 */
 &pinctrl {
@@ -281,9 +271,6 @@
 	pinctrl-1 = <&uart1_slot_sleep>;
 	pinctrl-names = "default", "sleep";
 };
-
-
-
 &gpio0 {
     status = "okay";
 };

@@ -11,6 +11,5 @@ void set_enable_slot_uart(uint8_t slot);
 void mcp23s17_isr(const struct device *dev,
                   struct gpio_callback *cb,
                   uint32_t pins);
-void set_enable_slot_uart(uint8_t slot);
 
 #endif /* STATION_GPIO_H */

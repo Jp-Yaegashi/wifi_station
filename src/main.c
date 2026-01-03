@@ -2,6 +2,7 @@
 #include "common.h"
 #include "station_gpio.h"
 #include "station_sdcard.h"
+#include "slot_uart.h"
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -10,6 +11,8 @@ LOG_MODULE_REGISTER(sta, CONFIG_LOG_DEFAULT_LEVEL);
 
 sd_data_t sd_data;
 sys_data_t sys_data;
+
+K_THREAD_DEFINE(uart_tid, 1024,slot_uart_thread,NULL, NULL, NULL,5, 0, 0);
 
 /**
  * @brief アプリケーションのエントリーポイント
@@ -45,6 +48,7 @@ int main(void)
     init_sd_card();
 
     init_wifi();
-  
+    
+    
     return ret;
 }
