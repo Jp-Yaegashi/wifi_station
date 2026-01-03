@@ -49,6 +49,11 @@ int main(void)
 
     init_wifi();
     
-    
+    //uart test デバイス名称取得 start
+    while(1){
+        slot_puts("DEVICENAME\r");
+         k_msleep(5000);      
+    }
+     //uart test デバイス名称取得 end
     return ret;
 }

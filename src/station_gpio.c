@@ -104,9 +104,9 @@ static void gpio_isr_work_handler(struct k_work *work)
     if(slot_state==0x00){ //どのスロットにもカード刺してない場合、通信無効設定
         set_enable_slot_uart(0xff);
     }
-    print_u8_bin(slot_state);
+    //print_u8_bin(slot_state);
 
-    printk("Interrupts re-enabled\n");
+    //printk("Interrupts re-enabled\n");
 }
 
 /**
@@ -282,7 +282,7 @@ void init_gpio()
         set_enable_slot_uart(0xff);
     }
 
-    print_u8_bin(slot_state);
+    //print_u8_bin(slot_state);
 
     gpio_pin_set_dt(&coex_req, LOW);
     gpio_pin_set_dt(&coex_status0, LOW);

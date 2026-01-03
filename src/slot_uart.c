@@ -12,7 +12,7 @@ static const struct device *uart_slot = DEVICE_DT_GET(DT_NODELABEL(uart1));
 RING_BUF_DECLARE(rx_ring, RX_RING_SIZE);
 K_SEM_DEFINE(rx_sem, 0, 1);
 
-static void uart1_puts(const char *s)
+void slot_puts(const char *s)
 {
     while (*s) {
         uart_poll_out(uart_slot, (unsigned char)*s++);
@@ -51,9 +51,6 @@ void slot_uart_thread(void)
 
     printk("*** uart1 monitor start ***\n");
 
-    /* 起動時コマンド（任意） */
-    uart1_puts("DEVICENAME\r");
-
     char line[LINE_MAX];
     int  line_len = 0;
 
@@ -69,7 +66,7 @@ void slot_uart_thread(void)
             if (c == '\r' || c == '\n') {
                 if (line_len > 0) {
                     line[line_len] = '\0';
-                    printk("UART1 RX: %s\n", line);
+                    printk("SLOT RX: %s\n", line);
                     line_len = 0;
                 }
                 continue;
