@@ -69,7 +69,7 @@ int cert_provision(void)
  */
 int https_post_json(void)
 {
-	
+	printk(".....https_post_json......\n");
 	cert_provision();
 
 	int sock = -1;
@@ -153,8 +153,6 @@ int https_post_json(void)
 	*/
 
 	const char json[] = "{\"sensor_id\":\"ssr_V6lVcrtQQnXE2P\",\"event\":\"high\",\"time\":1767007422,\"temperature\":60.5,\"threshold\":60.3}";
-
-	//const char json[] = "{\"sensor_id\":\"ssr_V6lVcrtQQnXE2P\",\"event\":\"high\"}";
 
 	char req[1024];
 
